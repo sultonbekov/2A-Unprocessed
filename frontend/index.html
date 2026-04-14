@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KOSMIK - Arxivlash</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Animated Background -->
+        <div class="bg-animation">
+            <div class="gradient-orb orb-1"></div>
+            <div class="gradient-orb orb-2"></div>
+            <div class="gradient-orb orb-3"></div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <h1 class="main-title">KOSMIK</h1>
+                <p class="department-name">MALUMOTLARNI QABUL QILISH, UMUMLASHTIRISH VA SAQLASH DEPARTAMENTI</p>
+            </header>
+
+            <!-- Card Container -->
+            <div class="card">
+                <!-- Step Indicator -->
+                <div class="steps-indicator">
+                    <div class="step active" data-step="1">
+                        <div class="step-number">1</div>
+                        <span>Вход</span>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step" data-step="2">
+                        <div class="step-number">2</div>
+                        <span>Архив</span>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step" data-step="3">
+                        <div class="step-number">3</div>
+                        <span>Выход</span>
+                    </div>
+                </div>
+
+                <!-- Input Section -->
+                <div class="input-section">
+                    <div class="input-group">
+                        <label for="inputPath">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                            </svg>
+                            Входная папка (Вилоят)
+                        </label>
+                        <div class="input-wrapper">
+                            <input type="text" id="inputPath" placeholder="D:\Тошкент" readonly>
+                            <button class="browse-btn" onclick="openBrowser('input')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                                </svg>
+                                Обзор
+                            </button>
+                        </div>
+                        <div class="validation-status" id="inputValidation"></div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="outputPath">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                            </svg>
+                            Выходная папка
+                        </label>
+                        <div class="input-wrapper">
+                            <input type="text" id="outputPath" placeholder="D:\Архивы" readonly>
+                            <button class="browse-btn" onclick="openBrowser('output')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                                </svg>
+                                Обзор
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Archive Button -->
+                <button class="archive-btn" id="archiveBtn" onclick="createArchive()" disabled>
+                    <span class="btn-content">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/>
+                        </svg>
+                        Создать архив
+                    </span>
+                    <span class="btn-loading">
+                        <div class="spinner"></div>
+                        Обработка...
+                    </span>
+                </button>
+
+                <!-- Result Section -->
+                <div class="result-section" id="resultSection">
+                    <div class="result-header">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        <h3>Архив успешно создан!</h3>
+                    </div>
+                    <div class="result-details">
+                        <div class="result-item">
+                            <span class="label">Вилоятов</span>
+                            <span class="value" id="resultViloyat">-</span>
+                        </div>
+                    </div>
+                    <div class="result-path">
+                        <span class="label">Сохранено:</span>
+                        <code id="resultPath">-</code>
+                    </div>
+                </div>
+            </div>
+
+                    </main>
+
+        <!-- File Browser Modal -->
+        <div class="modal" id="browserModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Выберите папку</h2>
+                    <button class="close-btn" onclick="closeBrowser()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-path">
+                    <button class="back-btn" id="backBtn" onclick="goBack()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                    </button>
+                    <input type="text" id="currentPath" readonly>
+                </div>
+                <div class="folder-list" id="folderList"></div>
+                <div class="modal-footer">
+                    <button class="cancel-btn" onclick="closeBrowser()">Отмена</button>
+                    <button class="select-btn" onclick="selectFolder()">Выбрать</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
