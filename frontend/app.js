@@ -239,10 +239,6 @@ async function createArchive() {
         if (data.success) {
             // Update result section
             document.getElementById('resultViloyat').textContent = data.viloyat_count;
-            document.getElementById('resultFiles').textContent = data.files_archived;
-            document.getElementById('resultOriginal').textContent = data.original_size;
-            document.getElementById('resultArchive').textContent = data.archive_size;
-            document.getElementById('resultCompression').textContent = data.compression_ratio;
             document.getElementById('resultPath').textContent = data.output_path;
             
             resultSection.classList.add('show');
