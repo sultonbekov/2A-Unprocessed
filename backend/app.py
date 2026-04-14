@@ -221,6 +221,7 @@ def browse_directory():
     """Browse directory contents"""
     data = request.get_json()
     path = data.get('path', '')
+    show_only_unprocessed = data.get('show_only_unprocessed', False)
     
     if not path:
         # Return drives on Windows including network drives
@@ -250,15 +251,27 @@ def browse_directory():
     try:
         path = Path(path)
         if not path.exists():
-            return jsonify({"error": "Путь не существует"}), 400
+            return jsonify({"error": "Path does not exist"}), 400
         
         items = []
         for item in sorted(path.iterdir()):
-            items.append({
-                "name": item.name,
-                "path": str(item),
-                "type": "folder" if item.is_dir() else "file"
-            })
+            # If showing only Unprocessed folders, filter them
+            if show_only_unprocessed:
+                if item.is_dir() and item.name == "Unprocessed":
+                    # Check if it contains 2A folder
+                    folder_2a = item / "2A"
+                    if folder_2a.exists():
+                        items.append({
+                            "name": item.name,
+                            "path": str(item),
+                            "type": "folder"
+                        })
+            else:
+                items.append({
+                    "name": item.name,
+                    "path": str(item),
+                    "type": "folder" if item.is_dir() else "file"
+                })
         
         return jsonify({
             "items": items,
@@ -266,7 +279,7 @@ def browse_directory():
             "parent_path": str(path.parent) if path.parent != path else None
         })
     except PermissionError:
-        return jsonify({"error": "Доступ запрещён"}), 403
+        return jsonify({"error": "Permission denied"}), 403
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

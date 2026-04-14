@@ -32,7 +32,9 @@ async function openBrowser(target) {
     currentBrowserTarget = target;
     selectedFolder = null;
     browserModal.classList.add('show');
-    await browsePath('');
+    // For input path, show only Unprocessed folders
+    const showOnlyUnprocessed = target === 'input';
+    await browsePath('', showOnlyUnprocessed);
 }
 
 // Close file browser
@@ -43,12 +45,12 @@ function closeBrowser() {
 }
 
 // Browse directory
-async function browsePath(path) {
+async function browsePath(path, showOnlyUnprocessed = false) {
     try {
         const response = await fetch(`${API_BASE}/browse`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path })
+            body: JSON.stringify({ path, show_only_unprocessed: showOnlyUnprocessed })
         });
         
         const data = await response.json();
@@ -115,7 +117,8 @@ function renderFolderList(items) {
         });
         
         button.addEventListener('dblclick', () => {
-            browsePath(item.path || item.name);
+            const showOnlyUnprocessed = currentBrowserTarget === 'input';
+            browsePath(item.path || item.name, showOnlyUnprocessed);
         });
         
         folderList.appendChild(button);
@@ -124,10 +127,11 @@ function renderFolderList(items) {
 
 // Go back
 function goBack() {
+    const showOnlyUnprocessed = currentBrowserTarget === 'input';
     if (parentPath) {
-        browsePath(parentPath);
+        browsePath(parentPath, showOnlyUnprocessed);
     } else if (currentPath) {
-        browsePath('');
+        browsePath('', showOnlyUnprocessed);
     }
 }
 
