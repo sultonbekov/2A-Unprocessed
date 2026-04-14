@@ -679,6 +679,15 @@ body {
     color: #f59e0b;
 }
 
+.folder-item.network {
+    background: linear-gradient(135deg, #5a2d8a 0%, #3a1f5f 100%);
+    border-color: #5a2d8a;
+}
+
+.folder-item.network svg {
+    color: #10b981;
+}
+
 .modal-footer {
     display: flex;
     gap: 12px;

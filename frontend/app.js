@@ -73,7 +73,7 @@ async function browsePath(path) {
 function renderFolderList(items) {
     folderList.innerHTML = '';
     
-    const folders = items.filter(item => item.type === 'folder' || item.type === 'drive');
+    const folders = items.filter(item => item.type === 'folder' || item.type === 'drive' || item.type === 'network');
     
     if (folders.length === 0) {
         folderList.innerHTML = `
@@ -86,12 +86,16 @@ function renderFolderList(items) {
     
     folders.forEach(item => {
         const button = document.createElement('button');
-        button.className = `folder-item ${item.type === 'drive' ? 'drive' : ''}`;
+        button.className = `folder-item ${item.type === 'drive' ? 'drive' : item.type === 'network' ? 'network' : ''}`;
         button.innerHTML = `
             ${item.type === 'drive' ? `
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="2" y="4" width="20" height="16" rx="2"/>
                     <path d="M6 8h.01M6 12h.01M6 16h.01"/>
+                </svg>
+            ` : item.type === 'network' ? `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M16 17l-4 4-4-4M4 7l4-4 4 4M12 3v18"/>
                 </svg>
             ` : `
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

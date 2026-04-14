@@ -223,13 +223,28 @@ def browse_directory():
     path = data.get('path', '')
     
     if not path:
-        # Return drives on Windows
+        # Return drives on Windows including network drives
         import string
         drives = []
+        
+        # Local drives
         for letter in string.ascii_uppercase:
             drive = f"{letter}:\\"
             if os.path.exists(drive):
                 drives.append({"name": drive, "type": "drive"})
+        
+        # Network drives
+        try:
+            import win32api
+            import win32file
+            drives_info = win32api.GetLogicalDriveStrings()
+            for drive in drives_info.split('\x00')[:-1]:
+                if drive and win32file.GetDriveType(drive) == win32file.DRIVE_REMOTE:
+                    drives.append({"name": drive, "type": "network"})
+        except ImportError:
+            # Fallback - add common network paths
+            drives.append({"name": "\\\\", "type": "network"})
+        
         return jsonify({"items": drives, "current_path": ""})
     
     try:
