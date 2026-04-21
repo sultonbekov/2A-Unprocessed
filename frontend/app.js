@@ -224,7 +224,60 @@ function updateStep(stepNum) {
     });
 }
 
-// Create archive
+// Format seconds to H:M:S
+function formatDuration(seconds) {
+    if (seconds <= 0 || !isFinite(seconds)) return '—';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    if (h > 0) return `${h}ч ${m}м ${s}с`;
+    if (m > 0) return `${m}м ${s}с`;
+    return `${s}с`;
+}
+
+function formatBytes(bytes) {
+    if (!bytes) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+    let i = 0;
+    let size = bytes;
+    while (size >= 1024 && i < units.length - 1) {
+        size /= 1024;
+        i++;
+    }
+    return `${size.toFixed(2)} ${units[i]}`;
+}
+
+// Show/update progress UI
+function renderProgress(data) {
+    const section = document.getElementById('progressSection');
+    if (!section) return;
+    section.classList.add('show');
+    
+    const percent = Math.min(100, data.percent || 0);
+    document.getElementById('progressBar').style.width = `${percent}%`;
+    document.getElementById('progressPercent').textContent = `${percent.toFixed(1)}%`;
+    
+    const statusText = {
+        'queued': 'В очереди...',
+        'calculating': 'Подсчёт размера...',
+        'archiving': 'Архивирование...',
+        'completed': 'Завершено',
+        'error': 'Ошибка'
+    }[data.status] || data.status || '';
+    document.getElementById('progressStatus').textContent = statusText;
+    
+    document.getElementById('progressBytes').textContent =
+        `${formatBytes(data.processed_bytes || 0)} / ${formatBytes(data.total_bytes || 0)}`;
+    document.getElementById('progressSpeed').textContent = data.current_speed || '—';
+    document.getElementById('progressEta').textContent =
+        data.eta_seconds !== undefined ? formatDuration(data.eta_seconds) : '—';
+    document.getElementById('progressElapsed').textContent =
+        data.elapsed !== undefined ? formatDuration(data.elapsed) : '—';
+    document.getElementById('progressViloyats').textContent =
+        `${data.completed_viloyats || 0} / ${data.total_viloyats || 0}`;
+}
+
+// Create archive (background job with progress polling)
 async function createArchive() {
     if (!inputPath.value || !outputPath.value) return;
     
@@ -244,29 +297,48 @@ async function createArchive() {
         
         const data = await response.json();
         
-        if (data.success) {
-            // Update result section
-            document.getElementById('resultViloyat').textContent = data.viloyat_count;
-            document.getElementById('resultPath').textContent = data.output_path;
-            
-            resultSection.classList.add('show');
-            
-            // Update steps
-            document.querySelectorAll('.step').forEach(step => {
-                step.classList.remove('active');
-                step.classList.add('completed');
-            });
-            document.querySelectorAll('.step-line').forEach(line => {
-                line.classList.add('active');
-            });
-            
-            showNotification('Архив успешно создан!', 'success');
-        } else {
+        if (!data.success || !data.job_id) {
             showNotification(data.error || 'Ошибка создания архива', 'error');
+            archiveBtn.classList.remove('loading');
+            archiveBtn.disabled = false;
+            return;
         }
+        
+        // Poll progress every 500ms
+        const jobId = data.job_id;
+        const pollInterval = setInterval(async () => {
+            try {
+                const res = await fetch(`${API_BASE}/progress/${jobId}`);
+                const progress = await res.json();
+                renderProgress(progress);
+                
+                if (progress.status === 'completed') {
+                    clearInterval(pollInterval);
+                    document.getElementById('resultViloyat').textContent = progress.viloyat_count;
+                    document.getElementById('resultPath').textContent = progress.output_path;
+                    resultSection.classList.add('show');
+                    
+                    document.querySelectorAll('.step').forEach(s => {
+                        s.classList.remove('active');
+                        s.classList.add('completed');
+                    });
+                    document.querySelectorAll('.step-line').forEach(l => l.classList.add('active'));
+                    
+                    showNotification(`Готово за ${progress.elapsed_seconds}с (${progress.speed})`, 'success');
+                    archiveBtn.classList.remove('loading');
+                    archiveBtn.disabled = false;
+                } else if (progress.status === 'error') {
+                    clearInterval(pollInterval);
+                    showNotification(progress.error || 'Ошибка архивирования', 'error');
+                    archiveBtn.classList.remove('loading');
+                    archiveBtn.disabled = false;
+                }
+            } catch (err) {
+                console.error('Poll error:', err);
+            }
+        }, 500);
     } catch (error) {
         showNotification('Не удалось подключиться к серверу', 'error');
-    } finally {
         archiveBtn.classList.remove('loading');
         archiveBtn.disabled = false;
     }
