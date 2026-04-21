@@ -26,33 +26,10 @@
 
             <!-- Main Form -->
             <div class="main-form">
-                <!-- Step Indicator -->
-                <div class="steps-indicator">
-                    <div class="step active" data-step="1">
-                        <div class="step-number">1</div>
-                        <span>Вход</span>
-                    </div>
-                    <div class="step-line"></div>
-                    <div class="step" data-step="2">
-                        <div class="step-number">2</div>
-                        <span>Архив</span>
-                    </div>
-                    <div class="step-line"></div>
-                    <div class="step" data-step="3">
-                        <div class="step-number">3</div>
-                        <span>Выход</span>
-                    </div>
-                </div>
-
-                <!-- Input Section -->
-                <div class="input-section">
+                <!-- Input/Output Row -->
+                <div class="io-row">
                     <div class="input-group">
-                        <label for="inputPath">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                            </svg>
-                            Входная папка (год)
-                        </label>
+                        <label for="inputPath">Входная папка (год)</label>
                         <div class="input-wrapper manual">
                             <input type="text" id="inputPath" placeholder="Введите путь к папке год/...">
                         </div>
@@ -60,12 +37,7 @@
                     </div>
 
                     <div class="input-group">
-                        <label for="outputPath">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-                            </svg>
-                            Выходная папка
-                        </label>
+                        <label for="outputPath">Выходная папка</label>
                         <div class="input-wrapper manual">
                             <input type="text" id="outputPath" placeholder="Введите путь для сохранения архива">
                         </div>

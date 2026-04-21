@@ -130,78 +130,19 @@ body {
     padding: 0;
 }
 
-/* Steps Indicator */
-.steps-indicator {
+/* Input/Output Row - side by side */
+.io-row {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 40px;
-}
-
-.step {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-}
-
-.step-number {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--bg-input);
-    border: 2px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 14px;
-    color: var(--text-muted);
-    transition: all 0.3s ease;
-}
-
-.step span {
-    font-size: 12px;
-    color: var(--text-muted);
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-
-.step.active .step-number {
-    background: var(--primary-light);
-    border-color: var(--primary-light);
-    color: white;
-    box-shadow: 0 4px 15px rgba(45, 90, 138, 0.5);
-}
-
-.step.active span {
-    color: var(--text-primary);
-}
-
-.step.completed .step-number {
-    background: var(--success);
-    border-color: var(--success);
-    color: white;
-}
-
-.step.completed span {
-    color: var(--success);
-}
-
-.step-line {
-    width: 60px;
-    height: 2px;
-    background: var(--border);
-    margin: 0 16px;
+    gap: 20px;
     margin-bottom: 24px;
-    transition: all 0.3s ease;
 }
 
-.step-line.active {
-    background: var(--primary);
+.io-row .input-group {
+    flex: 1;
+    min-width: 0;
 }
 
-/* Input Section */
+/* Input Section - used for single column layout */
 .input-section {
     display: flex;
     flex-direction: column;
