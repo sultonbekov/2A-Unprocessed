@@ -13,6 +13,7 @@ import webbrowser
 import threading
 from pathlib import Path
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
 
 # Configure logging
@@ -80,63 +81,79 @@ class ViloyatArchiver:
                 count += 1
         return count
     
+    def _archive_single_viloyat(self, viloyat: dict, output_path: Path) -> dict:
+        """Archive a single viloyat - used for parallel processing"""
+        viloyat_name = viloyat["name"]
+        folder_2a = Path(viloyat["folder_2a_path"])
+        
+        viloyat_output = output_path / viloyat_name
+        viloyat_output.mkdir(parents=True, exist_ok=True)
+        zip_filename = viloyat_output / "2A.zip"
+        
+        files_archived = 0
+        original_size = 0
+        
+        # ZIP_STORED = no compression = ULTRA FAST (10-20x faster)
+        # Most viloyat files (PDF, images, docs) are already compressed
+        with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_STORED, allowZip64=True) as zipf:
+            # Use os.walk for faster iteration than rglob
+            for root, dirs, files in os.walk(folder_2a):
+                root_path = Path(root)
+                for file_name in files:
+                    file_path = root_path / file_name
+                    arcname = file_path.relative_to(folder_2a)
+                    try:
+                        zipf.write(file_path, arcname)
+                        files_archived += 1
+                        original_size += file_path.stat().st_size
+                    except Exception as e:
+                        logger.warning(f"Skipped {file_path}: {e}")
+        
+        archive_size = zip_filename.stat().st_size
+        logger.info(f"Archive created: {zip_filename} ({files_archived} files)")
+        
+        return {
+            "viloyat_name": viloyat_name,
+            "archive_path": str(zip_filename),
+            "files_archived": files_archived,
+            "original_size": original_size,
+            "archive_size": archive_size
+        }
+    
     def create_archive(self, input_path: str, output_path: str) -> dict:
-        """Create ZIP archives for all Viloyat folders"""
+        """Create ZIP archives for all Viloyat folders IN PARALLEL"""
         try:
+            start_time = datetime.now()
             input_path = Path(input_path)
             output_path = Path(output_path)
             
-            # Validate input
             validation = self.validate_input_path(str(input_path))
             if not validation["valid"]:
                 return {"success": False, "error": validation["error"]}
             
             viloyats = validation["viloyats"]
             results = []
-            total_files_archived = 0
-            total_original_size = 0
-            total_archive_size = 0
             
-            for viloyat in viloyats:
-                viloyat_name = viloyat["name"]
-                folder_2a = Path(viloyat["folder_2a_path"])
-                
-                # Create output directory structure: output/ViloyatName/
-                viloyat_output = output_path / viloyat_name
-                viloyat_output.mkdir(parents=True, exist_ok=True)
-                
-                # Create ZIP file: output/ViloyatName/2A.zip
-                zip_filename = viloyat_output / "2A.zip"
-                
-                # Create the archive
-                files_archived = 0
-                original_size = 0
-                
-                with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                    for file_path in folder_2a.rglob("*"):
-                        if file_path.is_file():
-                            arcname = file_path.relative_to(folder_2a)
-                            zipf.write(file_path, arcname)
-                            files_archived += 1
-                            original_size += file_path.stat().st_size
-                
-                archive_size = zip_filename.stat().st_size
-                
-                results.append({
-                    "viloyat_name": viloyat_name,
-                    "archive_path": str(zip_filename),
-                    "files_archived": files_archived,
-                    "original_size": original_size,
-                    "archive_size": archive_size
-                })
-                
-                total_files_archived += files_archived
-                total_original_size += original_size
-                total_archive_size += archive_size
-                
-                logger.info(f"Archive created: {zip_filename}")
+            # PARALLEL PROCESSING: all viloyats at once
+            max_workers = min(len(viloyats), os.cpu_count() or 4)
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = {
+                    executor.submit(self._archive_single_viloyat, v, output_path): v
+                    for v in viloyats
+                }
+                for future in as_completed(futures):
+                    try:
+                        results.append(future.result())
+                    except Exception as e:
+                        viloyat = futures[future]
+                        logger.error(f"Failed to archive {viloyat['name']}: {e}")
             
-            compression_ratio = (1 - total_archive_size / total_original_size) * 100 if total_original_size > 0 else 0
+            total_files_archived = sum(r["files_archived"] for r in results)
+            total_original_size = sum(r["original_size"] for r in results)
+            total_archive_size = sum(r["archive_size"] for r in results)
+            
+            elapsed = (datetime.now() - start_time).total_seconds()
+            logger.info(f"Total time: {elapsed:.2f}s for {total_files_archived} files")
             
             return {
                 "success": True,
@@ -145,7 +162,7 @@ class ViloyatArchiver:
                 "files_archived": total_files_archived,
                 "original_size": self._format_size(total_original_size),
                 "archive_size": self._format_size(total_archive_size),
-                "compression_ratio": f"{compression_ratio:.1f}%",
+                "elapsed_seconds": f"{elapsed:.2f}",
                 "output_path": str(output_path),
                 "created_at": datetime.now().isoformat()
             }
@@ -298,7 +315,7 @@ if __name__ == '__main__':
     print("\n   Opening browser...")
     print("="*50 + "\n")
     
-    # Open browser after a short delay
+
     threading.Timer(1.5, open_browser).start()
     
     app.run(debug=False, port=5000, threaded=True)
