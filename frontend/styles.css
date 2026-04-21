@@ -30,7 +30,7 @@
 }
 
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Times New Roman', Times, serif;
     background: var(--bg-dark);
     color: var(--text-primary);
     min-height: 100vh;
@@ -109,33 +109,20 @@ body {
     max-width: 600px;
 }
 
-/* Header */
+/* Header - simplified, same text size */
 .header {
     text-align: center;
     margin-bottom: 40px;
 }
 
-.main-title {
-    font-size: 36px;
-    font-weight: 700;
-    color: #ffffff;
-    letter-spacing: 4px;
-    margin-bottom: 12px;
-}
-
-.tagline {
-    color: var(--text-secondary);
-    font-size: 14px;
+.main-title, .department-name {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 18px;
     font-weight: 400;
-}
-
-.department-name {
-    color: var(--text-secondary);
-    font-size: 12px;
-    font-weight: 500;
+    color: #ffffff;
+    letter-spacing: 2px;
     text-align: center;
-    letter-spacing: 1px;
-    text-transform: uppercase;
+    margin: 8px 0;
 }
 
 /* Card */
