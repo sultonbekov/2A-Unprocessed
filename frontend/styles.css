@@ -109,10 +109,14 @@ body {
     max-width: 600px;
 }
 
-/* Header - left aligned, white color */
+/* Header - centered */
 .header {
-    text-align: left;
+    text-align: center;
     margin-bottom: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 .main-title, .department-name {
