@@ -388,6 +388,106 @@ body {
     to { transform: rotate(360deg); }
 }
 
+/* Options Section (format + quality) */
+.options-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.option-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.option-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #a8c5e0;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.format-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.quality-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.option-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 10px;
+    background: rgba(10, 22, 40, 0.5);
+    border: 1.5px solid rgba(45, 90, 138, 0.4);
+    border-radius: 10px;
+    color: #c4dcf5;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    position: relative;
+}
+
+.option-btn:hover:not(.disabled) {
+    border-color: #4a8fd8;
+    background: rgba(30, 58, 95, 0.5);
+    transform: translateY(-1px);
+}
+
+.option-btn.selected {
+    background: linear-gradient(135deg, #2d5a8a 0%, #1e3a5f 100%);
+    border-color: #4a8fd8;
+    box-shadow: 0 0 16px rgba(74, 143, 216, 0.35);
+    color: #fff;
+}
+
+.option-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.option-btn .option-name {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.option-btn .option-desc {
+    font-size: 11px;
+    opacity: 0.8;
+    text-align: center;
+    line-height: 1.3;
+}
+
+.option-btn .option-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 9px;
+    padding: 2px 6px;
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+@media (max-width: 640px) {
+    .options-section {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* Progress Section */
 .progress-section {
     display: none;

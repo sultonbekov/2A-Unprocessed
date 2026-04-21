@@ -15,10 +15,42 @@ from pathlib import Path
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import uuid
+import subprocess
 import logging
 
 # Ultra-fast IO buffer size (8MB) - 512x bigger than default 16KB
 IO_BUFFER_SIZE = 8 * 1024 * 1024
+
+# Optional 7z support
+try:
+    import py7zr
+    from py7zr import FILTER_LZMA2, FILTER_COPY, PRESET_DEFAULT
+    HAS_7Z = True
+except ImportError:
+    HAS_7Z = False
+
+# Optional RAR support - detect Rar.exe
+def _find_rar_exe():
+    candidates = [
+        r"C:\Program Files\WinRAR\Rar.exe",
+        r"C:\Program Files (x86)\WinRAR\Rar.exe",
+        shutil.which("rar"),
+        shutil.which("Rar.exe"),
+    ]
+    for c in candidates:
+        if c and os.path.isfile(c):
+            return c
+    return None
+
+RAR_EXE = _find_rar_exe()
+HAS_RAR = RAR_EXE is not None
+
+# Supported archive formats
+ARCHIVE_FORMATS = {
+    "zip": {"ext": "zip", "available": True, "name": "ZIP (быстро, без сжатия)"},
+    "7z": {"ext": "7z", "available": HAS_7Z, "name": "7-Zip (максимальное качество)"},
+    "rar": {"ext": "rar", "available": HAS_RAR, "name": "RAR (WinRAR)"},
+}
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -96,76 +128,239 @@ class ViloyatArchiver:
             pass
         return count
     
-    def _archive_single_viloyat(self, viloyat: dict, output_path: Path, job_id: str = None) -> dict:
-        """Archive a single viloyat with 8MB IO buffer for TB-scale speed"""
+    # ---- Progress helpers ----
+    def _tick_progress(self, job_id, viloyat_name, bytes_delta, files_delta):
+        if not job_id:
+            return
+        with JOBS_LOCK:
+            if job_id in JOBS:
+                JOBS[job_id]["processed_bytes"] = JOBS[job_id].get("processed_bytes", 0) + bytes_delta
+                JOBS[job_id]["processed_files"] = JOBS[job_id].get("processed_files", 0) + files_delta
+                JOBS[job_id]["current_viloyat"] = viloyat_name
+    
+    def _mark_viloyat_done(self, job_id):
+        if not job_id:
+            return
+        with JOBS_LOCK:
+            if job_id in JOBS:
+                JOBS[job_id]["completed_viloyats"] = JOBS[job_id].get("completed_viloyats", 0) + 1
+    
+    # ---- Format dispatcher ----
+    def _archive_single_viloyat(self, viloyat: dict, output_path: Path, job_id: str = None,
+                                 fmt: str = "zip", quality: str = "fast") -> dict:
+        """Archive a single viloyat in selected format"""
         viloyat_name = viloyat["name"]
         folder_2a = Path(viloyat["folder_2a_path"])
-        folder_2a_str = str(folder_2a)
-        folder_2a_len = len(folder_2a_str) + 1  # +1 for separator
-        
         viloyat_output = output_path / viloyat_name
         viloyat_output.mkdir(parents=True, exist_ok=True)
+        
+        if fmt == "7z":
+            if not HAS_7Z:
+                raise RuntimeError("7z не установлен (pip install py7zr)")
+            return self._archive_7z(viloyat_name, folder_2a, viloyat_output, job_id, quality)
+        elif fmt == "rar":
+            if not HAS_RAR:
+                raise RuntimeError("RAR не найден (установите WinRAR)")
+            return self._archive_rar(viloyat_name, folder_2a, viloyat_output, job_id, quality)
+        else:
+            return self._archive_zip(viloyat_name, folder_2a, viloyat_output, job_id, quality)
+    
+    # ---- ZIP (ultra fast, no compression) ----
+    def _archive_zip(self, viloyat_name, folder_2a: Path, viloyat_output: Path,
+                     job_id: str, quality: str) -> dict:
+        folder_2a_str = str(folder_2a)
+        folder_2a_len = len(folder_2a_str) + 1
         zip_filename = viloyat_output / "2A.zip"
+        
+        # quality: fast = STORED; best = DEFLATED level 6
+        if quality == "best":
+            compress_type = zipfile.ZIP_DEFLATED
+            compresslevel = 6
+        else:
+            compress_type = zipfile.ZIP_STORED
+            compresslevel = None
         
         files_archived = 0
         original_size = 0
-        bytes_since_update = 0
-        files_since_update = 0
-        UPDATE_THRESHOLD = 256 * 1024 * 1024  # update progress every 256MB
+        bytes_buf = 0
+        files_buf = 0
+        UPDATE_THRESHOLD = 256 * 1024 * 1024
         
-        # ZIP_STORED = no compression (files are already compressed: PDF/JPG/PNG/DOCX)
-        # Large IO buffer via BufferedWriter speeds up big files massively
         with open(zip_filename, 'wb', buffering=IO_BUFFER_SIZE) as fp:
-            with zipfile.ZipFile(fp, 'w', zipfile.ZIP_STORED, allowZip64=True) as zipf:
+            with zipfile.ZipFile(fp, 'w', compress_type, allowZip64=True, compresslevel=compresslevel) as zipf:
                 for root, dirs, files in os.walk(folder_2a_str):
                     for file_name in files:
                         file_path = os.path.join(root, file_name)
                         arcname = file_path[folder_2a_len:]
                         try:
                             file_size = os.path.getsize(file_path)
-                            # Use streaming write with 8MB buffer for huge files
                             zinfo = zipfile.ZipInfo.from_file(file_path, arcname)
-                            zinfo.compress_type = zipfile.ZIP_STORED
+                            zinfo.compress_type = compress_type
                             with open(file_path, 'rb', buffering=IO_BUFFER_SIZE) as src:
                                 with zipf.open(zinfo, 'w', force_zip64=True) as dst:
                                     shutil.copyfileobj(src, dst, IO_BUFFER_SIZE)
                             files_archived += 1
                             original_size += file_size
-                            bytes_since_update += file_size
-                            files_since_update += 1
-                            
-                            if job_id and bytes_since_update >= UPDATE_THRESHOLD:
-                                with JOBS_LOCK:
-                                    if job_id in JOBS:
-                                        JOBS[job_id]["processed_bytes"] = JOBS[job_id].get("processed_bytes", 0) + bytes_since_update
-                                        JOBS[job_id]["processed_files"] = JOBS[job_id].get("processed_files", 0) + files_since_update
-                                        JOBS[job_id]["current_viloyat"] = viloyat_name
-                                bytes_since_update = 0
-                                files_since_update = 0
+                            bytes_buf += file_size
+                            files_buf += 1
+                            if bytes_buf >= UPDATE_THRESHOLD:
+                                self._tick_progress(job_id, viloyat_name, bytes_buf, files_buf)
+                                bytes_buf = 0
+                                files_buf = 0
                         except Exception as e:
                             logger.warning(f"Skipped {file_path}: {e}")
         
-        # Final progress update for this viloyat
-        if job_id and (bytes_since_update > 0 or files_since_update > 0):
-            with JOBS_LOCK:
-                if job_id in JOBS:
-                    JOBS[job_id]["processed_bytes"] = JOBS[job_id].get("processed_bytes", 0) + bytes_since_update
-                    JOBS[job_id]["processed_files"] = JOBS[job_id].get("processed_files", 0) + files_since_update
+        if bytes_buf or files_buf:
+            self._tick_progress(job_id, viloyat_name, bytes_buf, files_buf)
         
         archive_size = os.path.getsize(zip_filename)
-        logger.info(f"Archive created: {zip_filename} ({files_archived} files, {self._format_size(archive_size)})")
-        
-        if job_id:
-            with JOBS_LOCK:
-                if job_id in JOBS:
-                    JOBS[job_id]["completed_viloyats"] = JOBS[job_id].get("completed_viloyats", 0) + 1
+        self._mark_viloyat_done(job_id)
+        logger.info(f"ZIP: {zip_filename} ({files_archived} files, {self._format_size(archive_size)})")
         
         return {
             "viloyat_name": viloyat_name,
             "archive_path": str(zip_filename),
             "files_archived": files_archived,
             "original_size": original_size,
-            "archive_size": archive_size
+            "archive_size": archive_size,
+        }
+    
+    # ---- 7z (high quality) ----
+    def _archive_7z(self, viloyat_name, folder_2a: Path, viloyat_output: Path,
+                    job_id: str, quality: str) -> dict:
+        archive_path = viloyat_output / "2A.7z"
+        
+        # Quality presets
+        if quality == "best":
+            filters = [{"id": py7zr.FILTER_LZMA2, "preset": 9}]
+        elif quality == "balanced":
+            filters = [{"id": py7zr.FILTER_LZMA2, "preset": 5}]
+        else:  # fast
+            filters = [{"id": py7zr.FILTER_LZMA2, "preset": 1}]
+        
+        # Enumerate files and compute totals first
+        file_entries = []
+        folder_2a_str = str(folder_2a)
+        folder_2a_len = len(folder_2a_str) + 1
+        for root, dirs, files in os.walk(folder_2a_str):
+            for fn in files:
+                fp = os.path.join(root, fn)
+                file_entries.append((fp, fp[folder_2a_len:]))
+        
+        files_archived = 0
+        original_size = 0
+        bytes_buf = 0
+        files_buf = 0
+        UPDATE_THRESHOLD = 128 * 1024 * 1024
+        
+        with py7zr.SevenZipFile(archive_path, 'w', filters=filters) as archive:
+            for fp, arc in file_entries:
+                try:
+                    fs = os.path.getsize(fp)
+                    archive.write(fp, arc)
+                    files_archived += 1
+                    original_size += fs
+                    bytes_buf += fs
+                    files_buf += 1
+                    if bytes_buf >= UPDATE_THRESHOLD:
+                        self._tick_progress(job_id, viloyat_name, bytes_buf, files_buf)
+                        bytes_buf = 0
+                        files_buf = 0
+                except Exception as e:
+                    logger.warning(f"Skipped {fp}: {e}")
+        
+        if bytes_buf or files_buf:
+            self._tick_progress(job_id, viloyat_name, bytes_buf, files_buf)
+        
+        archive_size = os.path.getsize(archive_path)
+        self._mark_viloyat_done(job_id)
+        logger.info(f"7z: {archive_path} ({files_archived} files, {self._format_size(archive_size)})")
+        
+        return {
+            "viloyat_name": viloyat_name,
+            "archive_path": str(archive_path),
+            "files_archived": files_archived,
+            "original_size": original_size,
+            "archive_size": archive_size,
+        }
+    
+    # ---- RAR (via WinRAR Rar.exe) ----
+    def _archive_rar(self, viloyat_name, folder_2a: Path, viloyat_output: Path,
+                     job_id: str, quality: str) -> dict:
+        archive_path = viloyat_output / "2A.rar"
+        
+        # Count files + size upfront for progress tracking
+        files_total = 0
+        original_size = 0
+        for root, dirs, files in os.walk(folder_2a):
+            for fn in files:
+                try:
+                    original_size += os.path.getsize(os.path.join(root, fn))
+                    files_total += 1
+                except OSError:
+                    pass
+        
+        # RAR quality levels: -m0 store, -m1 fastest, -m3 normal, -m5 best
+        level_map = {"fast": "-m1", "balanced": "-m3", "best": "-m5"}
+        level = level_map.get(quality, "-m3")
+        
+        # Background thread: poll archive file size for progress
+        stop_evt = threading.Event()
+        last_reported = [0]
+        
+        def progress_watcher():
+            while not stop_evt.is_set():
+                try:
+                    if archive_path.exists():
+                        cur_size = os.path.getsize(archive_path)
+                        # Estimate: archive grows proportionally to input consumed
+                        # For -m1..-m5, ratio depends; we use archive_size growth as proxy for bytes_buf
+                        # Report growth since last report, capped at original_size
+                        if cur_size > last_reported[0]:
+                            # Estimate ratio: original/cur ≈ 1 for most compressed data (PDF/JPG)
+                            # So bytes processed ≈ cur_size
+                            delta = min(cur_size, original_size) - last_reported[0]
+                            if delta > 0:
+                                self._tick_progress(job_id, viloyat_name, delta, 0)
+                                last_reported[0] = min(cur_size, original_size)
+                except OSError:
+                    pass
+                stop_evt.wait(2.0)
+        
+        watcher = threading.Thread(target=progress_watcher, daemon=True)
+        watcher.start()
+        
+        try:
+            # rar a -r -ep1 -m3 <archive> <folder>\*
+            cmd = [
+                RAR_EXE, "a", "-r", "-ep1", "-idq", level,
+                str(archive_path),
+                os.path.join(str(folder_2a), "*"),
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode not in (0, 1):  # 0=success, 1=warning
+                raise RuntimeError(f"RAR failed (code {result.returncode}): {result.stderr[:500]}")
+        finally:
+            stop_evt.set()
+            watcher.join(timeout=3)
+        
+        # Final progress: ensure we counted everything
+        remaining = original_size - last_reported[0]
+        if remaining > 0:
+            self._tick_progress(job_id, viloyat_name, remaining, files_total)
+        else:
+            self._tick_progress(job_id, viloyat_name, 0, files_total)
+        
+        archive_size = os.path.getsize(archive_path) if archive_path.exists() else 0
+        self._mark_viloyat_done(job_id)
+        logger.info(f"RAR: {archive_path} ({files_total} files, {self._format_size(archive_size)})")
+        
+        return {
+            "viloyat_name": viloyat_name,
+            "archive_path": str(archive_path),
+            "files_archived": files_total,
+            "original_size": original_size,
+            "archive_size": archive_size,
         }
     
     def _calculate_total_size(self, viloyats: list) -> int:
@@ -191,7 +386,8 @@ class ViloyatArchiver:
                 total += size
         return total
     
-    def run_archive_job(self, job_id: str, input_path: str, output_path: str):
+    def run_archive_job(self, job_id: str, input_path: str, output_path: str,
+                         fmt: str = "zip", quality: str = "fast"):
         """Background job: archive all viloyats with progress tracking"""
         try:
             start_time = datetime.now()
@@ -219,15 +415,21 @@ class ViloyatArchiver:
                     "processed_bytes": 0,
                     "processed_files": 0,
                     "completed_viloyats": 0,
+                    "format": fmt,
+                    "quality": quality,
                     "start_time": start_time.isoformat()
                 })
             
             results = []
-            max_workers = min(len(viloyats), (os.cpu_count() or 4) * 2)
+            # For CPU-heavy formats (7z/rar-best) limit concurrency to CPU cores
+            if fmt in ("7z", "rar") and quality != "fast":
+                max_workers = min(len(viloyats), os.cpu_count() or 4)
+            else:
+                max_workers = min(len(viloyats), (os.cpu_count() or 4) * 2)
             
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = {
-                    executor.submit(self._archive_single_viloyat, v, output_path_p, job_id): v
+                    executor.submit(self._archive_single_viloyat, v, output_path_p, job_id, fmt, quality): v
                     for v in viloyats
                 }
                 for future in as_completed(futures):
@@ -310,23 +512,48 @@ def validate_path():
     return jsonify(result)
 
 
+@app.route('/api/formats', methods=['GET'])
+def list_formats():
+    """Return available archive formats"""
+    return jsonify({
+        "formats": [
+            {"id": k, "name": v["name"], "ext": v["ext"], "available": v["available"]}
+            for k, v in ARCHIVE_FORMATS.items()
+        ],
+        "qualities": [
+            {"id": "fast", "name": "Быстро"},
+            {"id": "balanced", "name": "Баланс"},
+            {"id": "best", "name": "Максимальное качество"},
+        ],
+    })
+
+
 @app.route('/api/archive', methods=['POST'])
 def create_archive():
     """Start background archive job and return job_id immediately"""
     data = request.get_json()
     input_path = data.get('input_path', '')
     output_path = data.get('output_path', '')
+    fmt = (data.get('format') or 'zip').lower()
+    quality = (data.get('quality') or 'fast').lower()
     
     if not input_path or not output_path:
         return jsonify({"success": False, "error": "Укажите входной и выходной пути"}), 400
     
+    if fmt not in ARCHIVE_FORMATS:
+        return jsonify({"success": False, "error": f"Неизвестный формат: {fmt}"}), 400
+    if not ARCHIVE_FORMATS[fmt]["available"]:
+        return jsonify({"success": False, "error": f"Формат {fmt} недоступен на этой системе"}), 400
+    if quality not in ("fast", "balanced", "best"):
+        quality = "fast"
+    
     job_id = uuid.uuid4().hex
     with JOBS_LOCK:
-        JOBS[job_id] = {"status": "queued", "job_id": job_id}
+        JOBS[job_id] = {"status": "queued", "job_id": job_id, "format": fmt, "quality": quality}
     
     thread = threading.Thread(
         target=archiver.run_archive_job,
-        args=(job_id, input_path, output_path),
+        args=(job_id, input_path, output_path, fmt, quality),
         daemon=True
     )
     thread.start()

@@ -10,6 +10,10 @@ let currentBrowserTarget = null;
 let currentPath = '';
 let parentPath = null;
 let selectedFolder = null;
+let selectedFormat = 'zip';
+let selectedQuality = 'fast';
+let availableFormats = [];
+let availableQualities = [];
 
 // DOM Elements
 const inputPath = document.getElementById('inputPath');
@@ -23,9 +27,62 @@ const currentPathInput = document.getElementById('currentPath');
 const backBtn = document.getElementById('backBtn');
 
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     updateArchiveButton();
+    await loadFormats();
 });
+
+// Load available formats
+async function loadFormats() {
+    try {
+        const res = await fetch(`${API_BASE}/formats`);
+        const data = await res.json();
+        availableFormats = data.formats || [];
+        availableQualities = data.qualities || [];
+        renderFormatSelector();
+        renderQualitySelector();
+    } catch (err) {
+        console.error('Failed to load formats:', err);
+    }
+}
+
+function renderFormatSelector() {
+    const grid = document.getElementById('formatGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    availableFormats.forEach(f => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn' + (f.id === selectedFormat ? ' selected' : '') + (f.available ? '' : ' disabled');
+        btn.disabled = !f.available;
+        btn.innerHTML = `
+            <span class="option-name">${f.ext.toUpperCase()}</span>
+            <span class="option-desc">${f.name}</span>
+            ${!f.available ? '<span class="option-badge">недоступно</span>' : ''}
+        `;
+        btn.addEventListener('click', () => {
+            if (!f.available) return;
+            selectedFormat = f.id;
+            renderFormatSelector();
+        });
+        grid.appendChild(btn);
+    });
+}
+
+function renderQualitySelector() {
+    const grid = document.getElementById('qualityGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    availableQualities.forEach(q => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn' + (q.id === selectedQuality ? ' selected' : '');
+        btn.innerHTML = `<span class="option-name">${q.name}</span>`;
+        btn.addEventListener('click', () => {
+            selectedQuality = q.id;
+            renderQualitySelector();
+        });
+        grid.appendChild(btn);
+    });
+}
 
 // Open file browser
 async function openBrowser(target) {
@@ -291,7 +348,9 @@ async function createArchive() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 input_path: inputPath.value,
-                output_path: outputPath.value
+                output_path: outputPath.value,
+                format: selectedFormat,
+                quality: selectedQuality
             })
         });
         
