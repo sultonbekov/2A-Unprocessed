@@ -269,20 +269,21 @@ body {
     height: 16px;
 }
 
-/* Archive Button */
+/* Archive Button - wider and taller */
 .archive-btn {
     width: 100%;
-    padding: 18px 32px;
+    padding: 24px 48px;
     background: linear-gradient(135deg, var(--primary-light), var(--primary));
     border: none;
     border-radius: var(--radius-sm);
     color: white;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
+    min-height: 60px;
 }
 
 .archive-btn:not(:disabled):hover {
