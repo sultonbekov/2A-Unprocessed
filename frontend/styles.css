@@ -117,15 +117,16 @@ body {
 
 .main-title, .department-name {
     font-family: 'Times New Roman', Times, serif;
-    font-size: 20px;
+    font-size: 24px;
     font-weight: 400;
     color: #ffffff;
-    letter-spacing: 3px;
+    letter-spacing: 4px;
     text-align: left;
-    margin: 16px 0;
-    line-height: 2;
+    margin: 20px 0;
+    line-height: 2.5;
     width: 100%;
     max-width: 100%;
+    text-shadow: 0 0 30px rgba(255, 255, 255, 0.5), 0 0 60px rgba(100, 181, 246, 0.3);
 }
 
 /* Main Form - flat, no card styling */
