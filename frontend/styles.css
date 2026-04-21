@@ -117,24 +117,24 @@ body {
 
 .main-title {
     font-family: 'Times New Roman', Times, serif;
-    font-size: 28px;
+    font-size: 20px;
     font-weight: 400;
     color: #ffffff;
-    letter-spacing: 4px;
+    letter-spacing: 3px;
     text-align: center;
-    margin: 16px 0;
-    text-shadow: 0 0 40px rgba(255, 255, 255, 0.8), 0 0 80px rgba(100, 181, 246, 0.6);
+    margin: 12px 0;
+    text-shadow: 0 0 30px rgba(255, 255, 255, 0.6), 0 0 60px rgba(100, 181, 246, 0.4);
 }
 
 .department-name {
     font-family: 'Times New Roman', Times, serif;
-    font-size: 28px;
+    font-size: 18px;
     font-weight: 400;
     color: #ffffff;
-    letter-spacing: 4px;
+    letter-spacing: 2px;
     text-align: center;
-    margin: 16px 0;
-    text-shadow: 0 0 40px rgba(255, 255, 255, 0.8), 0 0 80px rgba(100, 181, 246, 0.6);
+    margin: 12px 0;
+    text-shadow: 0 0 30px rgba(255, 255, 255, 0.6), 0 0 60px rgba(100, 181, 246, 0.4);
     white-space: nowrap;
 }
 
@@ -165,6 +165,13 @@ body {
 .io-row .input-wrapper input {
     height: 48px;
     min-height: 48px;
+    background: #ffffff;
+    color: #000000;
+    border: 2px solid var(--primary-light);
+}
+
+.io-row .input-wrapper input::placeholder {
+    color: #666666;
 }
 
 /* Input Section - used for single column layout */
@@ -400,6 +407,27 @@ body {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
+}
+
+.format-grid .option-btn {
+    padding: 16px 24px;
+    background: linear-gradient(135deg, var(--primary-light), var(--primary));
+    border: none;
+    border-radius: var(--radius-sm);
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.format-grid .option-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(30, 58, 95, 0.5);
+}
+
+.format-grid .option-btn.selected {
+    background: linear-gradient(135deg, var(--success), #059669);
 }
 
 .option-btn {
