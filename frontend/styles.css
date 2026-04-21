@@ -140,6 +140,18 @@ body {
 .io-row .input-group {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.io-row .input-wrapper {
+    flex: 1;
+    display: flex;
+}
+
+.io-row .input-wrapper input {
+    height: 48px;
+    min-height: 48px;
 }
 
 /* Input Section - used for single column layout */
