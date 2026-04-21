@@ -109,30 +109,25 @@ body {
     max-width: 600px;
 }
 
-/* Header - simplified, same text size */
+/* Header - left aligned, white color */
 .header {
-    text-align: center;
-    margin-bottom: 40px;
+    text-align: left;
+    margin-bottom: 30px;
 }
 
 .main-title, .department-name {
     font-family: 'Times New Roman', Times, serif;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 400;
     color: #ffffff;
-    letter-spacing: 2px;
-    text-align: center;
-    margin: 8px 0;
+    letter-spacing: 1px;
+    text-align: left;
+    margin: 4px 0;
 }
 
-/* Card */
-.card {
-    background: var(--bg-card);
-    backdrop-filter: blur(40px);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 40px;
-    box-shadow: var(--shadow);
+/* Main Form - flat, no card styling */
+.main-form {
+    padding: 0;
 }
 
 /* Steps Indicator */
