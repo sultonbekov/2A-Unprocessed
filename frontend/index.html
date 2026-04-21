@@ -20,8 +20,8 @@
         <main class="main-content">
             <!-- Header -->
             <header class="header">
-                <h1 class="main-title">KOSMIK</h1>
-                <p class="department-name">MALUMOTLARNI QABUL QILISH, UMUMLASHTIRISH VA SAQLASH DEPARTAMENTI</p>
+                <h1 class="main-title shiny-text">KOSMIK</h1>
+                <p class="department-name shiny-subtitle">MALUMOTLARNI QABUL QILISH, UMUMLASHTIRISH VA SAQLASH DEPARTAMENTI</p>
             </header>
 
             <!-- Card Container -->
@@ -53,14 +53,8 @@
                             </svg>
                             Входная папка (Вилоят)
                         </label>
-                        <div class="input-wrapper">
-                            <input type="text" id="inputPath" placeholder="" readonly>
-                            <button class="browse-btn" onclick="openBrowser('input')">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                                </svg>
-                                Обзор
-                            </button>
+                        <div class="input-wrapper manual">
+                            <input type="text" id="inputPath" placeholder="Введите путь к папке Вилоят/...">
                         </div>
                         <div class="validation-status" id="inputValidation"></div>
                     </div>
@@ -72,14 +66,8 @@
                             </svg>
                             Выходная папка
                         </label>
-                        <div class="input-wrapper">
-                            <input type="text" id="outputPath" placeholder="" readonly>
-                            <button class="browse-btn" onclick="openBrowser('output')">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                                </svg>
-                                Обзор
-                            </button>
+                        <div class="input-wrapper manual">
+                            <input type="text" id="outputPath" placeholder="Введите путь для сохранения архива">
                         </div>
                     </div>
                 </div>

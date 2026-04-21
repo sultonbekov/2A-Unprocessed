@@ -274,6 +274,12 @@ body {
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
+/* Manual input style (no browse button) */
+.input-wrapper.manual input {
+    width: 100%;
+    border-radius: var(--radius-sm);
+}
+
 .browse-btn {
     display: flex;
     align-items: center;
@@ -386,6 +392,58 @@ body {
 
 @keyframes spin {
     to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   Shiny Text Effect (CSS adaptation)
+   ============================================ */
+
+.shiny-text {
+    display: inline-block;
+    background: linear-gradient(
+        120deg,
+        #ffffff 0%,
+        #ffffff 35%,
+        #a8d0ff 50%,
+        #ffffff 65%,
+        #ffffff 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shiny 3s linear infinite;
+}
+
+@keyframes shiny {
+    0% {
+        background-position: 200% center;
+    }
+    100% {
+        background-position: -200% center;
+    }
+}
+
+.shiny-text-slow {
+    animation-duration: 4s;
+}
+
+/* Subtitle shiny with different timing */
+.shiny-subtitle {
+    display: inline-block;
+    background: linear-gradient(
+        120deg,
+        rgba(255, 255, 255, 0.7) 0%,
+        rgba(255, 255, 255, 0.7) 35%,
+        rgba(168, 208, 255, 0.9) 50%,
+        rgba(255, 255, 255, 0.7) 65%,
+        rgba(255, 255, 255, 0.7) 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shiny 5s linear infinite;
 }
 
 /* Format Section (simplified - 7z and RAR only) */
