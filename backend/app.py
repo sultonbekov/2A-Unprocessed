@@ -45,11 +45,10 @@ def _find_rar_exe():
 RAR_EXE = _find_rar_exe()
 HAS_RAR = RAR_EXE is not None
 
-# Supported archive formats
+# Supported archive formats (only 7z and RAR, always max quality)
 ARCHIVE_FORMATS = {
-    "zip": {"ext": "zip", "available": True, "name": "ZIP (быстро, без сжатия)"},
-    "7z": {"ext": "7z", "available": HAS_7Z, "name": "7-Zip (максимальное качество)"},
-    "rar": {"ext": "rar", "available": HAS_RAR, "name": "RAR (WinRAR)"},
+    "7z": {"ext": "7z", "available": HAS_7Z, "name": "7-Zip"},
+    "rar": {"ext": "rar", "available": HAS_RAR, "name": "WinRAR"},
 }
 
 # Configure logging
@@ -514,17 +513,12 @@ def validate_path():
 
 @app.route('/api/formats', methods=['GET'])
 def list_formats():
-    """Return available archive formats"""
+    """Return available archive formats (7z and RAR only, always max quality)"""
     return jsonify({
         "formats": [
             {"id": k, "name": v["name"], "ext": v["ext"], "available": v["available"]}
             for k, v in ARCHIVE_FORMATS.items()
-        ],
-        "qualities": [
-            {"id": "fast", "name": "Быстро"},
-            {"id": "balanced", "name": "Баланс"},
-            {"id": "best", "name": "Максимальное качество"},
-        ],
+        ]
     })
 
 
@@ -534,8 +528,8 @@ def create_archive():
     data = request.get_json()
     input_path = data.get('input_path', '')
     output_path = data.get('output_path', '')
-    fmt = (data.get('format') or 'zip').lower()
-    quality = (data.get('quality') or 'fast').lower()
+    fmt = (data.get('format') or '7z').lower()
+    quality = "best"  # Always maximum quality
     
     if not input_path or not output_path:
         return jsonify({"success": False, "error": "Укажите входной и выходной пути"}), 400

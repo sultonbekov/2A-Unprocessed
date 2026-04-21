@@ -10,10 +10,8 @@ let currentBrowserTarget = null;
 let currentPath = '';
 let parentPath = null;
 let selectedFolder = null;
-let selectedFormat = 'zip';
-let selectedQuality = 'fast';
+let selectedFormat = '7z';
 let availableFormats = [];
-let availableQualities = [];
 
 // DOM Elements
 const inputPath = document.getElementById('inputPath');
@@ -38,9 +36,10 @@ async function loadFormats() {
         const res = await fetch(`${API_BASE}/formats`);
         const data = await res.json();
         availableFormats = data.formats || [];
-        availableQualities = data.qualities || [];
+        // Default to first available format
+        const firstAvailable = availableFormats.find(f => f.available);
+        if (firstAvailable) selectedFormat = firstAvailable.id;
         renderFormatSelector();
-        renderQualitySelector();
     } catch (err) {
         console.error('Failed to load formats:', err);
     }
@@ -63,22 +62,6 @@ function renderFormatSelector() {
             if (!f.available) return;
             selectedFormat = f.id;
             renderFormatSelector();
-        });
-        grid.appendChild(btn);
-    });
-}
-
-function renderQualitySelector() {
-    const grid = document.getElementById('qualityGrid');
-    if (!grid) return;
-    grid.innerHTML = '';
-    availableQualities.forEach(q => {
-        const btn = document.createElement('button');
-        btn.className = 'option-btn' + (q.id === selectedQuality ? ' selected' : '');
-        btn.innerHTML = `<span class="option-name">${q.name}</span>`;
-        btn.addEventListener('click', () => {
-            selectedQuality = q.id;
-            renderQualitySelector();
         });
         grid.appendChild(btn);
     });
@@ -349,8 +332,7 @@ async function createArchive() {
             body: JSON.stringify({
                 input_path: inputPath.value,
                 output_path: outputPath.value,
-                format: selectedFormat,
-                quality: selectedQuality
+                format: selectedFormat
             })
         });
         

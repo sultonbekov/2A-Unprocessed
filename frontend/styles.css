@@ -388,38 +388,25 @@ body {
     to { transform: rotate(360deg); }
 }
 
-/* Options Section (format + quality) */
-.options-section {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
+/* Format Section (simplified - 7z and RAR only) */
+.format-section {
     margin-bottom: 24px;
 }
 
-.option-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.option-label {
+.format-label {
+    display: block;
     font-size: 13px;
     font-weight: 500;
     color: #a8c5e0;
     text-transform: uppercase;
     letter-spacing: 0.3px;
+    margin-bottom: 10px;
 }
 
 .format-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-}
-
-.quality-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
 }
 
 .option-btn {
