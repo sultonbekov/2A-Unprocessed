@@ -115,27 +115,14 @@ body {
     margin-bottom: 30px;
 }
 
-.main-title {
+.main-title, .department-name {
     font-family: 'Times New Roman', Times, serif;
-    font-size: 20px;
-    font-weight: 400;
-    color: #ffffff;
-    letter-spacing: 3px;
-    text-align: center;
-    margin: 12px 0;
-    text-shadow: 0 0 30px rgba(255, 255, 255, 0.6), 0 0 60px rgba(100, 181, 246, 0.4);
-}
-
-.department-name {
-    font-family: 'Times New Roman', Times, serif;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 400;
     color: #ffffff;
     letter-spacing: 2px;
     text-align: center;
-    margin: 12px 0;
-    text-shadow: 0 0 30px rgba(255, 255, 255, 0.6), 0 0 60px rgba(100, 181, 246, 0.4);
-    white-space: nowrap;
+    margin: 8px 0;
 }
 
 /* Main Form - flat, no card styling */
