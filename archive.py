@@ -1,13 +1,4 @@
 #!/usr/bin/env python3
-"""
-KOSMIK Arxivlash - Lokal versiya
-
-INPUT:  Viloyatlar joylashgan papka (ichida Viloyat/Unprocessed/2A)
-OUTPUT: Arxivlar saqlanadigan papka
-
-Ishlatish:
-    python archive.py "INPUT_PAPKA" "OUTPUT_PAPKA"
-"""
 
 import sys
 import os
@@ -140,8 +131,8 @@ def main():
         print("=" * 70 + "\n")
         sys.exit(1)
 
-    input_path = Path(sys.argv[1])
-    output_path = Path(sys.argv[2])
+    input_path = Path(sys.argv[1])   # INPUT: Viloyatlar joylashgan papka
+    output_path = Path(sys.argv[2])  # OUTPUT: Arxivlar saqlanadigan papka
 
     print("\n" + "=" * 70)
     print("  KOSMIK Arxivlash")
