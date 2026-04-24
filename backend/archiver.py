@@ -1,9 +1,4 @@
-"""
-KOSMIK Arxivlash - Arxiv yaratish moduli (7z formati, tezkor rejim)
-
-MUHIM QOIDA: Bu modul manba fayllarni FAQAT O'QIYDI!
-Hech qachon hech qanday faylni o'zgartirmaydi yoki o'chirmaydi.
-"""
+# Manba fayllar faqat o'qiladi (input papka) - hech qachon o'zgartirilmaydi!
 
 import os
 import logging
@@ -21,18 +16,10 @@ from config import (
 import jobs
 
 logger = logging.getLogger(__name__)
-
-# Siqish filtri: FILTER_COPY = siqmasdan saqlash (eng tezkor usul).
-# PDF, JPG kabi allaqachon siqilgan fayllar uchun bu eng yaxshi tanlov.
 FAST_FILTERS = [{"id": FILTER_COPY}]
 
 
-# =====================================================================
-# Yordamchi funksiyalar
-# =====================================================================
-
 def format_size(n: float) -> str:
-    """Baytlarni inson o'qiy oladigan formatga o'giradi (KB, MB, GB, TB)"""
     size = float(n)
     for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
         if size < 1024:
@@ -42,7 +29,6 @@ def format_size(n: float) -> str:
 
 
 def calculate_folder_size(path: str) -> int:
-    """Papkaning umumiy hajmini tez hisoblaydi (os.scandir orqali)"""
     total = 0
     try:
         for entry in os.scandir(path):
@@ -59,7 +45,6 @@ def calculate_folder_size(path: str) -> int:
 
 
 def calculate_total_size(viloyats: list) -> int:
-    """Barcha viloyatlar hajmini parallel ravishda hisoblaydi"""
     if not viloyats:
         return 0
     total = 0
@@ -70,10 +55,6 @@ def calculate_total_size(viloyats: list) -> int:
 
 
 def find_viloyats(root: Path) -> list:
-    """
-    Berilgan papka ichidan barcha Viloyat/Unprocessed/2A strukturalarini topadi.
-    Natija: [{"name": "Andijon", "path": "...", "target_path": "...\\2A"}, ...]
-    """
     viloyats = []
     if not root.exists() or not root.is_dir():
         return viloyats
@@ -91,10 +72,6 @@ def find_viloyats(root: Path) -> list:
 
 
 def list_files(target: Path) -> list:
-    """
-    2A papkasi ichidagi barcha fayllarni ro'yxatga oladi.
-    Natija: [(to'liq_yo'l, arxiv_ichidagi_nom), ...]
-    """
     target_str = str(target)
     prefix_len = len(target_str) + 1
     entries = []
@@ -106,28 +83,14 @@ def list_files(target: Path) -> list:
     return entries
 
 
-# =====================================================================
-# Arxivlash funksiyalari
-# =====================================================================
-
 def archive_single_viloyat(viloyat: dict, output_root: Path, job_id: str) -> dict:
-    """
-    Bitta viloyatni 7z formatida arxivlaydi.
-
-    MUHIM: manba fayllar faqat o'qiladi (open 'rb'), hech qachon
-    o'zgartirilmaydi yoki o'chirilmaydi.
-
-    Chiqish: output_root/<ViloyatName>/2A.7z
-    """
     name = viloyat["name"]
     target = Path(viloyat["target_path"])
 
-    # Har bir viloyat uchun alohida papka yaratamiz
     viloyat_out = output_root / name
     viloyat_out.mkdir(parents=True, exist_ok=True)
     archive_path = viloyat_out / ARCHIVE_NAME
 
-    # Arxivlash oldin fayllar ro'yxatini tayyorlaymiz
     file_entries = list_files(target)
 
     files_done = 0
@@ -135,19 +98,15 @@ def archive_single_viloyat(viloyat: dict, output_root: Path, job_id: str) -> dic
     bytes_buf = 0
     files_buf = 0
 
-    # 7z faylini ochamiz va fayllarni bittadan yozamiz.
-    # FILTER_COPY = siqishsiz (eng tez) - katta fayllarda tezlik muhim.
     with py7zr.SevenZipFile(archive_path, 'w', filters=FAST_FILTERS) as archive:
         for full_path, arc_name in file_entries:
             try:
                 file_size = os.path.getsize(full_path)
-                # py7zr.write() faylni faqat o'qiydi - manba o'zgarmaydi
                 archive.write(full_path, arc_name)
                 files_done += 1
                 bytes_done += file_size
                 bytes_buf += file_size
                 files_buf += 1
-                # Har 128 MB da progressni yangilaymiz
                 if bytes_buf >= PROGRESS_UPDATE_BYTES:
                     jobs.tick_progress(job_id, name, bytes_buf, files_buf)
                     bytes_buf = 0
@@ -155,7 +114,6 @@ def archive_single_viloyat(viloyat: dict, output_root: Path, job_id: str) -> dic
             except Exception as e:
                 logger.warning(f"Fayl o'tkazib yuborildi {full_path}: {e}")
 
-    # Qolgan progress
     if bytes_buf or files_buf:
         jobs.tick_progress(job_id, name, bytes_buf, files_buf)
 
@@ -174,23 +132,16 @@ def archive_single_viloyat(viloyat: dict, output_root: Path, job_id: str) -> dic
 
 
 def run_archive_job(job_id: str, input_path: str, output_path: str) -> None:
-    """
-    Asosiy arxivlash ishini bajaradi.
-    Barcha viloyatlar PARALLEL ishlaydi - har biri alohida thread da.
-    CPU soniga qarab maksimal tezlik ta'minlanadi.
-    """
     try:
         start = datetime.now()
         input_p = Path(input_path)
         output_p = Path(output_path)
 
-        # 1-qadam: kirishni tekshirish
         if not input_p.exists() or not input_p.is_dir():
             jobs.update_job(job_id, status="error",
                             error="Kirish papka topilmadi")
             return
 
-        # 2-qadam: viloyatlarni qidirish
         viloyats = find_viloyats(input_p)
         if not viloyats:
             jobs.update_job(
@@ -199,10 +150,8 @@ def run_archive_job(job_id: str, input_path: str, output_path: str) -> None:
             )
             return
 
-        # 3-qadam: chiqish papkani tayyorlash
         output_p.mkdir(parents=True, exist_ok=True)
 
-        # 4-qadam: umumiy hajmni hisoblash (progress % uchun)
         jobs.update_job(job_id, status="calculating")
         total_size = calculate_total_size(viloyats)
 
@@ -217,9 +166,6 @@ def run_archive_job(job_id: str, input_path: str, output_path: str) -> None:
             start_time=start.isoformat(),
         )
 
-        # 5-qadam: parallel arxivlash.
-        # Workers soni = min(viloyatlar soni, CPU yadrolari soni)
-        # Bu CPU ni to'liq ishlatib maksimal tezlik beradi.
         cpu_count = os.cpu_count() or 4
         max_workers = min(len(viloyats), cpu_count)
         results = []
@@ -236,7 +182,6 @@ def run_archive_job(job_id: str, input_path: str, output_path: str) -> None:
                 except Exception as e:
                     logger.error(f"Viloyat arxivlash xatosi {v['name']}: {e}")
 
-        # 6-qadam: yakuniy statistika
         elapsed = (datetime.now() - start).total_seconds()
         total_files = sum(r["files_archived"] for r in results)
         total_original = sum(r["original_size"] for r in results)

@@ -1,12 +1,4 @@
-"""
-KOSMIK Arxivlash tizimi - Flask serveri
-
-Bu server frontend (HTML/JS) bilan backend (arxivlash logikasi) orasida
-ko'prik vazifasini bajaradi. Barcha arxivlash ishlari alohida thread larda
-bajariladi, shuning uchun foydalanuvchi interfeysi muzlab qolmaydi.
-
-Ishga tushirish: python backend/app.py
-"""
+# Server: input papkadan -> output papkaga arxivlashni boshqaradi
 
 from pathlib import Path
 import threading
@@ -22,10 +14,6 @@ from archiver import run_archive_job, find_viloyats
 from config import SERVER_PORT
 import jobs
 
-# =====================================================================
-# Sozlash
-# =====================================================================
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / 'frontend'
 
@@ -39,34 +27,17 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__, static_folder=str(FRONTEND_DIR), static_url_path='')
 CORS(app)
 
-
-# =====================================================================
-# Frontend (statik fayllar)
-# =====================================================================
-
 @app.route('/')
 def index():
-    """Bosh sahifa - HTML interfeys"""
     return send_from_directory(FRONTEND_DIR, 'index.html')
 
 
 @app.route('/<path:path>')
 def static_files(path):
-    """CSS, JS va boshqa statik fayllar"""
     return send_from_directory(FRONTEND_DIR, path)
-
-
-# =====================================================================
-# API endpointlari
-# =====================================================================
 
 @app.route('/api/validate', methods=['POST'])
 def validate():
-    """
-    Kirish papkani tekshiradi:
-    - Yo'l mavjudmi?
-    - Ichida Viloyat/Unprocessed/2A strukturasi bormi?
-    """
     data = request.get_json() or {}
     input_path = data.get('input_path', '').strip()
 
@@ -95,11 +66,6 @@ def validate():
 
 @app.route('/api/archive', methods=['POST'])
 def start_archive():
-    """
-    Arxivlash ishini boshlaydi.
-    Ish alohida thread da ishlaydi, serverga job_id qaytadi.
-    Frontend shu job_id bo'yicha progressni so'raydi.
-    """
     data = request.get_json() or {}
     input_path = data.get('input_path', '').strip()
     output_path = data.get('output_path', '').strip()
@@ -113,7 +79,6 @@ def start_archive():
     job_id = uuid.uuid4().hex
     jobs.create_job(job_id)
 
-    # Background thread da ishga tushiramiz
     thread = threading.Thread(
         target=run_archive_job,
         args=(job_id, input_path, output_path),
@@ -127,7 +92,6 @@ def start_archive():
 
 @app.route('/api/progress/<job_id>', methods=['GET'])
 def progress(job_id):
-    """Ishning joriy holatini qaytaradi (progress %, tezlik, ETA)"""
     job = jobs.get_job(job_id)
     if not job:
         return jsonify({"error": "Ish topilmadi"}), 404
@@ -136,7 +100,6 @@ def progress(job_id):
     processed = job.get("processed_bytes", 0)
     job["percent"] = (processed / total * 100) if total > 0 else 0
 
-    # Tezlik va qolgan vaqtni hisoblash
     if job.get("start_time") and processed > 0 and total > 0:
         start = datetime.fromisoformat(job["start_time"])
         elapsed = (datetime.now() - start).total_seconds()
@@ -149,12 +112,7 @@ def progress(job_id):
     return jsonify(job)
 
 
-# =====================================================================
-# Serverni ishga tushirish
-# =====================================================================
-
 def _open_browser():
-    """Server tayyor bo'lganda brauzerni avtomatik ochadi"""
     webbrowser.open(f'http://localhost:{SERVER_PORT}')
 
 
@@ -166,7 +124,6 @@ if __name__ == '__main__':
     print(f"   Server:   http://localhost:{SERVER_PORT}")
     print("=" * 60 + "\n")
 
-    # 1 soniyadan keyin brauzerni ochamiz
     threading.Timer(1.0, _open_browser).start()
 
     app.run(debug=False, port=SERVER_PORT, threaded=True)

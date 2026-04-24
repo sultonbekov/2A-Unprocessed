@@ -1,14 +1,4 @@
-"""
-KOSMIK Arxivlash - Ma'lumotlar butunligi testi
 
-Bu test 20 marta arxivlash jarayonini bajaradi va har safar tekshiradi:
-  1. Manba fayllar o'zgarmaganmi? (SHA-256 hash taqqoslash)
-  2. Hech qanday manba fayl o'chirilmadimi?
-  3. Yangi arxiv hamma fayllarni o'z ichiga olyaptimi?
-
-Agar BIRORTA test muvaffaqiyatsiz bo'lsa - demak kod xavfli,
-manba ma'lumotlariga teginyapti. Bu QAT'IYAN mumkin emas.
-"""
 
 import hashlib
 import os
